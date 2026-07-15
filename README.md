@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🚀 Sistema de Gestión Comercial - Laravel
 
 ![Laravel](https://img.shields.io/badge/Laravel-10-red?style=flat-square&logo=laravel)
@@ -265,3 +266,6 @@ GitHub: https://github.com/Gio0938
 ---
 
 ⭐ Si te sirve el proyecto, dale estrella en GitHub.
+=======
+# SistemaComercialLibros-
+>>>>>>> 0be0bb71e0f380467b08a1e0ef0dffdfaf67e560
