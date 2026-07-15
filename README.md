@@ -89,8 +89,8 @@ Incluye panel administrativo, sistema de reportes, punto de venta (POS) y una p√
 ### Pasos
 
 ```bash
-git clone https://github.com/Gio0938/sistema-venta-libros-peliculas.git
-cd sistema-venta-libros-peliculas
+git clone https://github.com/Gio0938/SistemaComercialLibros-.git
+cd SistemaComercialLibros
 
 composer install
 
