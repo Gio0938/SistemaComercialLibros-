@@ -99,6 +99,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/ventas/{id}', [VentaController::class, 'update'])->name('ventas.update');
     Route::delete('/ventas/{id}', [VentaController::class, 'destroy'])->name('ventas.destroy');
 
+    // ==================== API PARA VENTAS (POS) ====================
+    Route::get('/api/libros-venta', [VentaController::class, 'getLibrosVenta'])->name('api.libros-venta');
+    Route::get('/api/peliculas-venta', [VentaController::class, 'getPeliculasVenta'])->name('api.peliculas-venta');
+
     // ==================== INVENTARIO ====================
     Route::get('/inventario', [ReporteController::class, 'inventario'])->name('inventario.index');
     Route::get('/inventario/stock-bajo', [ReporteController::class, 'stockBajo'])->name('inventario.stock-bajo');

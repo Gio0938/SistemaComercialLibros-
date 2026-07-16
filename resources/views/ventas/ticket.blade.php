@@ -5,15 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ticket #{{ $venta->folio }}</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Courier New', monospace;
             font-size: 12px;
-            line-height: 1.4;
+            background: white;
             padding: 20px;
             max-width: 300px;
             margin: 0 auto;
@@ -24,140 +20,146 @@
         }
         .header {
             text-align: center;
-            border-bottom: 1px dashed #000;
+            border-bottom: 1px dashed #ccc;
             padding-bottom: 10px;
             margin-bottom: 10px;
         }
         .header h2 {
             font-size: 16px;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
+        }
+        .header .sub {
+            font-size: 10px;
+            color: #666;
         }
         .info {
-            margin-bottom: 15px;
-            border-bottom: 1px dotted #ccc;
+            border-bottom: 1px dashed #ccc;
             padding-bottom: 10px;
+            margin-bottom: 10px;
         }
         .info p {
-            margin: 3px 0;
+            margin: 2px 0;
         }
-        table {
-            width: 100%;
-            margin-bottom: 15px;
-            border-collapse: collapse;
+        .items {
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
         }
-        th, td {
-            text-align: left;
-            padding: 5px 0;
+        .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
         }
-        th {
-            border-bottom: 1px dashed #000;
+        .item .name {
+            flex: 1;
         }
-        td:last-child,
-        th:last-child {
+        .item .qty {
+            text-align: center;
+            width: 30px;
+        }
+        .item .price {
             text-align: right;
+            width: 70px;
         }
-        .totales {
-            border-top: 1px dashed #000;
-            padding-top: 10px;
-            margin-top: 10px;
+        .totals {
             text-align: right;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
         }
-        .totales p {
-            margin: 3px 0;
+        .totals .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+        }
+        .totals .row.total {
+            font-weight: bold;
+            font-size: 14px;
+            border-top: 1px solid #333;
+            padding-top: 5px;
+            margin-top: 5px;
         }
         .footer {
             text-align: center;
-            margin-top: 20px;
-            padding-top: 10px;
-            border-top: 1px dashed #000;
             font-size: 10px;
+            color: #666;
         }
-        .btn-print {
-            background: #2c3e50;
-            color: white;
-            border: none;
-            padding: 10px;
-            margin-top: 20px;
-            cursor: pointer;
-            width: 100%;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        .btn-print:hover {
-            background: #1a252f;
-        }
-        @media print {
-            .btn-print {
-                display: none;
-            }
-            body {
-                padding: 0;
-                margin: 0;
-            }
-            .ticket {
-                border: none;
-                padding: 0;
-            }
-        }
+        .text-muted { color: #666; }
+        .text-center { text-align: center; }
     </style>
 </head>
 <body>
 <div class="ticket">
     <div class="header">
-        <h2>🏪 GESTIÓN COMERCIAL</h2>
-        <p>Ticket de Venta</p>
-        <p><strong>Folio:</strong> {{ $venta->folio }}</p>
-        <p>{{ $venta->created_at->format('d/m/Y H:i:s') }}</p>
+        <h2>📚 Librería & Cine</h2>
+        <div class="sub">Sistema de Ventas</div>
+        <div class="sub">Tel: (228) 123-4567</div>
     </div>
 
     <div class="info">
-        <p><strong>Atendió:</strong> {{ $venta->usuario->name ?? 'N/A' }}</p>
-        <p><strong>Cliente:</strong> {{ $venta->cliente->nombre ?? 'Público en general' }}</p>
-        @if(isset($venta->cliente->rfc) && $venta->cliente->rfc)
-            <p><strong>RFC:</strong> {{ $venta->cliente->rfc }}</p>
+        <p><strong>Folio:</strong> {{ $venta->folio }}</p>
+        <p><strong>Fecha:</strong> {{ $venta->fecha_venta->format('d/m/Y H:i') }}</p>
+        <p><strong>Cliente:</strong> {{ $venta->cliente ? $venta->cliente->nombre . ' ' . $venta->cliente->apellido : 'Público en general' }}</p>
+        <p><strong>Vendedor:</strong> {{ $venta->usuario->nombre ?? 'N/A' }}</p>
+        <p><strong>Pago:</strong> {{ $venta->metodo_pago_texto ?? $venta->metodo_pago }}</p>
+    </div>
+
+    <div class="items">
+        <div style="font-weight:bold;border-bottom:1px solid #333;padding-bottom:5px;margin-bottom:5px;">
+            <span>Producto</span>
+            <span style="float:right;">Subtotal</span>
+        </div>
+        @foreach($venta->detalles as $detalle)
+            <div class="item">
+                    <span class="name">
+                        {{ $detalle->tipo_producto == 'libro' ? '📚' : '🎬' }}
+                        {{ $detalle->nombre_producto }}
+                    </span>
+                <span class="qty">x{{ $detalle->cantidad }}</span>
+                <span class="price">${{ number_format($detalle->subtotal, 2) }}</span>
+            </div>
+        @endforeach
+    </div>
+
+    <div class="totals">
+        <div class="row">
+            <span>Subtotal:</span>
+            <span>${{ number_format($venta->subtotal, 2) }}</span>
+        </div>
+        <div class="row">
+            <span>IVA (16%):</span>
+            <span>${{ number_format($venta->iva, 2) }}</span>
+        </div>
+        @if($venta->descuento > 0)
+            <div class="row">
+                <span>Descuento:</span>
+                <span>-${{ number_format($venta->descuento, 2) }}</span>
+            </div>
         @endif
+        <div class="row total">
+            <span>TOTAL:</span>
+            <span>${{ number_format($venta->total, 2) }}</span>
+        </div>
     </div>
 
-    <table>
-        <thead>
-        <tr>
-            <th>Cant</th>
-            <th>Producto</th>
-            <th>Precio</th>
-            <th>Total</th>
-        </tr>
-        </thead>
-        <tbody>
-        @forelse($venta->detalles as $detalle)
-            <tr>
-                <td>{{ $detalle->cantidad }}</td>
-                <td>{{ $detalle->producto->nombre ?? 'Producto' }}</td>
-                <td>${{ number_format($detalle->precio_unitario, 2) }}</td>
-                <td>${{ number_format($detalle->subtotal, 2) }}</td>
-            </tr>
-        @empty
-            <tr>
-                <td colspan="4" style="text-align: center;">No hay productos</td>
-            </tr>
-        @endforelse
-        </tbody>
-    </table>
-
-    <div class="totales">
-        <p><strong>Subtotal:</strong> ${{ number_format($venta->subtotal, 2) }}</p>
-        <p><strong>IVA (16%):</strong> ${{ number_format($venta->iva, 2) }}</p>
-        <p><strong>TOTAL:</strong> ${{ number_format($venta->total, 2) }}</p>
-    </div>
+    @if($venta->observaciones)
+        <div class="info">
+            <p><strong>Observaciones:</strong></p>
+            <p>{{ $venta->observaciones }}</p>
+        </div>
+    @endif
 
     <div class="footer">
         <p>¡Gracias por su compra!</p>
-        <p>📍 Av. Principal #123, Ciudad</p>
-        <p>📞 Tel: (228) 123-4567</p>
+        <p>Visítanos en www.libreriaycine.com</p>
+        <p>--- Fin del Ticket ---</p>
     </div>
 </div>
 
-<button class="btn-print" onclick="window.print();window.close();">
-    🖨️ Imprimir Ticket
-</button>
+<script>
+    window.onload = function() {
+        window.print();
+    }
+</script>
 </body>
 </html>

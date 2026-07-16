@@ -55,61 +55,70 @@ class VentaController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'cliente_nombre' => 'nullable|string',
-            'cliente_apellido' => 'nullable|string',
-            'cliente_rfc' => 'nullable|string',
-            'cliente_telefono' => 'nullable|string',
-            'cliente_email' => 'nullable|email',
-            'items' => 'required|array|min:1',
-            'items.*.tipo' => 'required|in:libro,pelicula',
-            'items.*.id' => 'required|integer',
-            'items.*.cantidad' => 'required|integer|min:1',
-            'items.*.precio' => 'required|numeric|min:0',
-            'total' => 'required|numeric|min:0',
-            'metodo_pago' => 'required|in:efectivo,tarjeta,transferencia,credito'
-        ]);
-
-        DB::beginTransaction();
-
         try {
-            // Buscar o crear cliente
+            // Si los datos vienen como JSON
+            $data = $request->isJson() ? $request->json()->all() : $request->all();
+
+            // Validación
+            $validator = Validator::make($data, [
+                'cliente_nombre' => 'nullable|string',
+                'cliente_rfc' => 'nullable|string',
+                'cliente_telefono' => 'nullable|string',
+                'items' => 'required|array|min:1',
+                'items.*.tipo' => 'required|in:libro,pelicula',
+                'items.*.id' => 'required|integer',
+                'items.*.cantidad' => 'required|integer|min:1',
+                'items.*.precio' => 'required|numeric|min:0',
+                'metodo_pago' => 'required|in:efectivo,tarjeta,transferencia,credito',
+                'total' => 'required|numeric|min:0'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            // Crear o buscar cliente
             $cliente = null;
-            if ($request->cliente_nombre && $request->cliente_nombre !== 'Público en general') {
+            if ($data['cliente_nombre'] && $data['cliente_nombre'] !== 'Público en general') {
                 $cliente = Cliente::create([
-                    'nombre' => $request->cliente_nombre,
-                    'apellido' => $request->cliente_apellido ?? '',
-                    'email' => $request->cliente_email,
-                    'telefono' => $request->cliente_telefono,
+                    'nombre' => $data['cliente_nombre'],
+                    'rfc' => $data['cliente_rfc'] ?? null,
+                    'telefono' => $data['cliente_telefono'] ?? null,
+                    'email' => $data['cliente_email'] ?? null,
                     'fecha_registro' => now()
                 ]);
             }
 
+            // Calcular totales
             $subtotal = 0;
-            foreach ($request->items as $item) {
+            foreach ($data['items'] as $item) {
                 $subtotal += $item['cantidad'] * $item['precio'];
             }
-
             $iva = $subtotal * 0.16;
             $total = $subtotal + $iva;
 
+            // Crear venta
             $venta = Venta::create([
-                'folio' => $request->folio,
+                'folio' => $data['folio'] ?? Venta::generarFolio(),
                 'usuario_id' => Auth::id(),
                 'cliente_id' => $cliente ? $cliente->idcliente : null,
                 'fecha_venta' => now(),
                 'subtotal' => $subtotal,
                 'iva' => $iva,
                 'total' => $total,
-                'metodo_pago' => $request->metodo_pago,
+                'metodo_pago' => $data['metodo_pago'],
                 'estado' => 'completada',
-                'descuento' => 0
+                'descuento' => 0,
+                'observaciones' => $data['observaciones'] ?? null
             ]);
 
-            // Crear detalles de venta
-            foreach ($request->items as $item) {
-                $subtotalItem = $item['cantidad'] * $item['precio'];
-
+            // Crear detalles
+            foreach ($data['items'] as $item) {
                 DetalleVenta::create([
                     'venta_id' => $venta->idventa,
                     'tipo_producto' => $item['tipo'],
@@ -117,7 +126,7 @@ class VentaController extends Controller
                     'cantidad' => $item['cantidad'],
                     'precio_unitario' => $item['precio'],
                     'descuento' => 0,
-                    'subtotal' => $subtotalItem
+                    'subtotal' => $item['cantidad'] * $item['precio']
                 ]);
 
                 // Actualizar stock
@@ -356,5 +365,33 @@ class VentaController extends Controller
             DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Get libros for POS (API)
+     */
+    public function getLibrosVenta()
+    {
+        $libros = Libro::where('disponible', true)
+            ->where('stock', '>', 0)
+            ->select('idlibro as id', 'titulo', 'autor', 'editorial', 'isbn', 'genero', 'descripcion', 'precio', 'stock')
+            ->orderBy('titulo')
+            ->get();
+
+        return response()->json($libros);
+    }
+
+    /**
+     * Get peliculas for POS (API)
+     */
+    public function getPeliculasVenta()
+    {
+        $peliculas = Pelicula::where('disponible', true)
+            ->where('stock', '>', 0)
+            ->select('idpelicula as id', 'titulo', 'director', 'anio', 'duracion', 'genero', 'clasificacion', 'sinopsis', 'formato', 'idioma', 'precio', 'stock')
+            ->orderBy('titulo')
+            ->get();
+
+        return response()->json($peliculas);
     }
 }

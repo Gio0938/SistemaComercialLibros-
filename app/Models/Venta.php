@@ -73,4 +73,14 @@ class Venta extends Model
         }
         return 'Público en general';
     }
+
+    /**
+     * Generate a unique folio for the venta.
+     */
+    public static function generarFolio()
+    {
+        $year = date('Y');
+        $count = self::whereYear('fecha_venta', $year)->count() + 1;
+        return 'VEN-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+    }
 }
