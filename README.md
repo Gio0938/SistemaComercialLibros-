@@ -89,8 +89,8 @@ Incluye panel administrativo, sistema de reportes, punto de venta (POS) y una p√
 ### Pasos
 
 ```bash
-git clone https://github.com/Gio0938/sistema-venta-libros-peliculas.git
-cd sistema-venta-libros-peliculas
+git clone https://github.com/Gio0938/SistemaComercialLibros-.git
+cd SistemaComercialLibros
 
 composer install
 
@@ -114,7 +114,7 @@ php artisan serve
 | http://localhost:8000/login | Panel administrativo |
 
 **Credenciales:**
-- Email: admin@empresa.com
+- Email: admin@libreriaycine.com
 - Contrase√±a: password
 
 ---
@@ -132,7 +132,7 @@ APP_URL=http://localhost:8000
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=venta_libros_peliculas
+DB_DATABASE=libreria_cine
 DB_USERNAME=root
 DB_PASSWORD=
 ```
@@ -202,7 +202,7 @@ Tablas principales:
 ```json
 POST /api/login
 {
-  "email": "admin@empresa.com",
+  "email": "admin@libreriaycine.com",
   "password": "password"
 }
 ```
