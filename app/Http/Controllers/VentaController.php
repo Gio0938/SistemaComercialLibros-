@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class VentaController extends Controller
 {
@@ -22,24 +23,21 @@ class VentaController extends Controller
             return redirect()->route('login')->with('error', 'Debe iniciar sesión primero');
         }
 
-        // Obtener libros disponibles
         $libros = Libro::where('disponible', true)
             ->where('stock', '>', 0)
-            ->select('idlibro', 'titulo', 'autor', 'precio', 'stock', 'genero')
+            ->select('idlibro as id', 'titulo', 'autor', 'editorial', 'isbn', 'genero', 'descripcion', 'precio', 'stock')
             ->orderBy('titulo')
             ->get();
 
-        // Obtener películas disponibles
         $peliculas = Pelicula::where('disponible', true)
             ->where('stock', '>', 0)
-            ->select('idpelicula', 'titulo', 'director', 'precio', 'stock', 'genero', 'formato')
+            ->select('idpelicula as id', 'titulo', 'director', 'anio', 'duracion', 'genero', 'clasificacion', 'sinopsis', 'formato', 'idioma', 'precio', 'stock')
             ->orderBy('titulo')
             ->get();
 
-        $ultimoFolio = Venta::max('folio');
-        $nuevoFolio = $ultimoFolio ? str_pad((int)$ultimoFolio + 1, 5, '0', STR_PAD_LEFT) : '00001';
+        // Generar folio nuevo
+        $nuevoFolio = Venta::generarFolio();
 
-        // Géneros para filtros
         $generosLibros = Libro::select('genero')->distinct()->whereNotNull('genero')->pluck('genero');
         $generosPeliculas = Pelicula::select('genero')->distinct()->whereNotNull('genero')->pluck('genero');
 
@@ -56,14 +54,13 @@ class VentaController extends Controller
     public function store(Request $request)
     {
         try {
-            // Si los datos vienen como JSON
             $data = $request->isJson() ? $request->json()->all() : $request->all();
 
-            // Validación
             $validator = Validator::make($data, [
-                'cliente_nombre' => 'nullable|string',
-                'cliente_rfc' => 'nullable|string',
-                'cliente_telefono' => 'nullable|string',
+                'cliente_nombre' => 'nullable|string|max:255',
+                'cliente_rfc' => 'nullable|string|max:20',
+                'cliente_telefono' => 'nullable|string|max:20',
+                'cliente_email' => 'nullable|email|max:150',
                 'items' => 'required|array|min:1',
                 'items.*.tipo' => 'required|in:libro,pelicula',
                 'items.*.id' => 'required|integer',
@@ -84,9 +81,10 @@ class VentaController extends Controller
 
             // Crear o buscar cliente
             $cliente = null;
-            if ($data['cliente_nombre'] && $data['cliente_nombre'] !== 'Público en general') {
+            if (!empty($data['cliente_nombre']) && $data['cliente_nombre'] !== 'Público en general') {
                 $cliente = Cliente::create([
                     'nombre' => $data['cliente_nombre'],
+                    'apellido' => $data['cliente_apellido'] ?? '',
                     'rfc' => $data['cliente_rfc'] ?? null,
                     'telefono' => $data['cliente_telefono'] ?? null,
                     'email' => $data['cliente_email'] ?? null,
@@ -102,9 +100,12 @@ class VentaController extends Controller
             $iva = $subtotal * 0.16;
             $total = $subtotal + $iva;
 
+            // Generar folio ÚNICO
+            $folio = Venta::generarFolio();
+
             // Crear venta
             $venta = Venta::create([
-                'folio' => $data['folio'] ?? Venta::generarFolio(),
+                'folio' => $folio,
                 'usuario_id' => Auth::id(),
                 'cliente_id' => $cliente ? $cliente->idcliente : null,
                 'fecha_venta' => now(),
@@ -188,9 +189,8 @@ class VentaController extends Controller
 
     public function nuevoFolio()
     {
-        $ultimoFolio = Venta::max('folio');
-        $nuevoFolio = $ultimoFolio ? str_pad((int)$ultimoFolio + 1, 5, '0', STR_PAD_LEFT) : '00001';
-        return response()->json(['folio' => $nuevoFolio]);
+        $folio = Venta::generarFolio();
+        return response()->json(['folio' => $folio]);
     }
 
     public function misVentas()
@@ -212,24 +212,48 @@ class VentaController extends Controller
             return redirect()->route('ventas.historial')->with('error', 'No tienes permiso');
         }
 
-        // Obtener productos
-        $libros = Libro::where('disponible', true)->orderBy('titulo')->get();
-        $peliculas = Pelicula::where('disponible', true)->orderBy('titulo')->get();
+        // Obtener productos disponibles
+        $libros = Libro::where('disponible', true)
+            ->where('stock', '>', 0)
+            ->select('idlibro as id', 'titulo', 'autor', 'editorial', 'isbn', 'genero', 'descripcion', 'precio', 'stock')
+            ->orderBy('titulo')
+            ->get();
+
+        $peliculas = Pelicula::where('disponible', true)
+            ->where('stock', '>', 0)
+            ->select('idpelicula as id', 'titulo', 'director', 'anio', 'duracion', 'genero', 'clasificacion', 'sinopsis', 'formato', 'idioma', 'precio', 'stock')
+            ->orderBy('titulo')
+            ->get();
 
         $empleado = Auth::user();
         $nuevoFolio = $venta->folio;
 
+        // Construir carrito existente con todos los datos necesarios
         $carritoExistente = [];
         foreach ($venta->detalles as $detalle) {
+            // Obtener el nombre del producto según el tipo
+            $nombreProducto = '';
+            if ($detalle->tipo_producto == 'libro') {
+                $libro = Libro::find($detalle->producto_id);
+                $nombreProducto = $libro ? $libro->titulo : 'Libro eliminado';
+            } else {
+                $pelicula = Pelicula::find($detalle->producto_id);
+                $nombreProducto = $pelicula ? $pelicula->titulo : 'Película eliminada';
+            }
+
             $carritoExistente[] = [
                 'id' => $detalle->producto_id,
                 'tipo' => $detalle->tipo_producto,
-                'cantidad' => $detalle->cantidad,
+                'nombre' => $nombreProducto,
+                'cantidad' => (int) $detalle->cantidad,
                 'precio' => (float) $detalle->precio_unitario,
                 'subtotal' => (float) $detalle->subtotal,
-                'nombre' => $detalle->nombre_producto
+                'stock' => 999 // Stock ilimitado para edición
             ];
         }
+
+        $generosLibros = Libro::select('genero')->distinct()->whereNotNull('genero')->pluck('genero');
+        $generosPeliculas = Pelicula::select('genero')->distinct()->whereNotNull('genero')->pluck('genero');
 
         return view('ventas.pos', compact(
             'libros',
@@ -237,7 +261,9 @@ class VentaController extends Controller
             'nuevoFolio',
             'empleado',
             'carritoExistente',
-            'venta'
+            'venta',
+            'generosLibros',
+            'generosPeliculas'
         ));
     }
 

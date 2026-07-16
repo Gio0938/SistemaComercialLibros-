@@ -112,12 +112,6 @@
                                 </span>
                                     @endif
                                 </div>
-                                <div class="mt-2">
-                                    <small class="text-muted">
-                                        <i class="fas fa-{{ $promocion->tipo == 'libro' ? 'book' : ($promocion->tipo == 'pelicula' ? 'film' : 'layer-group') }} me-1"></i>
-                                        {{ $promocion->tipo == 'libro' ? 'Libros' : ($promocion->tipo == 'pelicula' ? 'Películas' : 'Ambos') }}
-                                    </small>
-                                </div>
                             </div>
                         </div>
                     </div>

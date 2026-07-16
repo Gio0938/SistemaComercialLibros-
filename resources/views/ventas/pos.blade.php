@@ -1,8 +1,8 @@
 @extends('layouts.admin')
 
-@section('title', 'Punto de Venta - Librería & Cine')
-@section('page-title', 'Punto de Venta')
-@section('page-subtitle', 'Registra una nueva venta')
+@section('title', isset($venta) ? 'Editar Venta - Librería & Cine' : 'Punto de Venta - Librería & Cine')
+@section('page-title', isset($venta) ? 'Editar Venta #' . $venta->folio : 'Punto de Venta')
+@section('page-subtitle', isset($venta) ? 'Modifica los productos de la venta' : 'Registra una nueva venta')
 
 @section('content')
     <div class="row">
@@ -10,23 +10,44 @@
             <div class="card">
                 <div class="card-body">
                     <!-- Formulario de Venta -->
-                    <form id="ventaForm" action="{{ route('ventas.store') }}" method="POST">
+                    <form id="ventaForm" action="{{ isset($venta) ? route('ventas.update', $venta->idventa) : route('ventas.store') }}" method="POST">
                         @csrf
+                        @if(isset($venta))
+                            @method('PUT')
+                        @endif
                         <input type="hidden" name="folio" value="{{ $nuevoFolio }}">
+                        <input type="hidden" name="venta_id" value="{{ isset($venta) ? $venta->idventa : '' }}">
 
                         <!-- Datos del Cliente -->
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="cliente_nombre" class="form-label">Nombre del Cliente</label>
-                                <input type="text" class="form-control" id="cliente_nombre" name="cliente_nombre" placeholder="Público en general">
+                                <input type="text" class="form-control" id="cliente_nombre" name="cliente_nombre" placeholder="Público en general" value="{{ isset($venta) && $venta->cliente ? $venta->cliente->nombre : '' }}">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="cliente_apellido" class="form-label">Apellido</label>
+                                <input type="text" class="form-control" id="cliente_apellido" name="cliente_apellido" placeholder="Apellido" value="{{ isset($venta) && $venta->cliente ? $venta->cliente->apellido : '' }}">
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label for="cliente_rfc" class="form-label">RFC</label>
-                                <input type="text" class="form-control" id="cliente_rfc" name="cliente_rfc" placeholder="RFC">
+                                <input type="text" class="form-control" id="cliente_rfc" name="cliente_rfc" placeholder="RFC" value="{{ isset($venta) && $venta->cliente ? $venta->cliente->rfc : '' }}">
                             </div>
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label for="cliente_telefono" class="form-label">Teléfono</label>
-                                <input type="text" class="form-control" id="cliente_telefono" name="cliente_telefono" placeholder="Teléfono">
+                                <input type="text" class="form-control" id="cliente_telefono" name="cliente_telefono" placeholder="Teléfono" value="{{ isset($venta) && $venta->cliente ? $venta->cliente->telefono : '' }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="cliente_email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="cliente_email" name="cliente_email" placeholder="Email" value="{{ isset($venta) && $venta->cliente ? $venta->cliente->email : '' }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="metodo_pago" class="form-label">Método de Pago <span class="text-danger">*</span></label>
+                                <select class="form-select" id="metodo_pago" name="metodo_pago" required>
+                                    <option value="efectivo" {{ isset($venta) && $venta->metodo_pago == 'efectivo' ? 'selected' : '' }}>Efectivo</option>
+                                    <option value="tarjeta" {{ isset($venta) && $venta->metodo_pago == 'tarjeta' ? 'selected' : '' }}>Tarjeta</option>
+                                    <option value="transferencia" {{ isset($venta) && $venta->metodo_pago == 'transferencia' ? 'selected' : '' }}>Transferencia</option>
+                                    <option value="credito" {{ isset($venta) && $venta->metodo_pago == 'credito' ? 'selected' : '' }}>Crédito</option>
+                                </select>
                             </div>
                         </div>
 
@@ -34,7 +55,7 @@
 
                         <!-- Selección de Producto -->
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label for="tipo_producto" class="form-label">Tipo de Producto <span class="text-danger">*</span></label>
                                 <select class="form-select" id="tipo_producto" required>
                                     <option value="">Seleccionar tipo...</option>
@@ -42,7 +63,7 @@
                                     <option value="pelicula">Película</option>
                                 </select>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-8 mb-3">
                                 <label for="producto_id" class="form-label">Producto <span class="text-danger">*</span></label>
                                 <select class="form-select" id="producto_id" required>
                                     <option value="">Primero selecciona un tipo</option>
@@ -76,18 +97,9 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="metodo_pago" class="form-label">Método de Pago <span class="text-danger">*</span></label>
-                                <select class="form-select" id="metodo_pago" name="metodo_pago" required>
-                                    <option value="efectivo">Efectivo</option>
-                                    <option value="tarjeta">Tarjeta</option>
-                                    <option value="transferencia">Transferencia</option>
-                                    <option value="credito">Crédito</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-12 mb-3">
                                 <label for="observaciones" class="form-label">Observaciones</label>
-                                <textarea class="form-control" id="observaciones" name="observaciones" rows="1"></textarea>
+                                <textarea class="form-control" id="observaciones" name="observaciones" rows="2">{{ isset($venta) ? $venta->observaciones : '' }}</textarea>
                             </div>
                         </div>
                     </form>
@@ -114,12 +126,7 @@
                             </tr>
                             </thead>
                             <tbody id="carritoBody">
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-3">
-                                    <i class="fas fa-shopping-cart fa-2x d-block mb-2"></i>
-                                    Carrito vacío
-                                </td>
-                            </tr>
+                            <!-- El carrito se llena con JavaScript -->
                             </tbody>
                         </table>
                     </div>
@@ -143,7 +150,8 @@
                         </div>
                         <div class="col-12">
                             <button type="button" class="btn btn-success w-100" id="btnFinalizarVenta" disabled>
-                                <i class="fas fa-check me-2"></i>Finalizar Venta
+                                <i class="fas fa-{{ isset($venta) ? 'save' : 'check' }} me-2"></i>
+                                {{ isset($venta) ? 'Actualizar Venta' : 'Finalizar Venta' }}
                             </button>
                         </div>
                     </div>
@@ -157,11 +165,11 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Confirmar Venta</h5>
+                    <h5 class="modal-title">{{ isset($venta) ? 'Actualizar Venta' : 'Confirmar Venta' }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>¿Estás seguro de finalizar esta venta?</p>
+                    <p>{{ isset($venta) ? '¿Estás seguro de actualizar esta venta?' : '¿Estás seguro de finalizar esta venta?' }}</p>
                     <div class="row">
                         <div class="col-6">
                             <small>Total</small>
@@ -172,11 +180,18 @@
                             <h4 id="modalItems">0</h4>
                         </div>
                     </div>
+                    @if(isset($venta))
+                        <div class="alert alert-info mt-2">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Folio: <strong>{{ $venta->folio }}</strong>
+                        </div>
+                    @endif
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-success" id="btnConfirmarVenta">
-                        <i class="fas fa-check me-2"></i>Confirmar Venta
+                        <i class="fas fa-{{ isset($venta) ? 'save' : 'check' }} me-2"></i>
+                        {{ isset($venta) ? 'Actualizar' : 'Confirmar' }}
                     </button>
                 </div>
             </div>
@@ -223,6 +238,15 @@
         $(document).ready(function() {
             let carrito = [];
             let productosData = [];
+            let esEdicion = {{ isset($venta) ? 'true' : 'false' }};
+
+            // ============================================
+            // CARGAR CARRITO EXISTENTE (SI ES EDICIÓN)
+            // ============================================
+            @if(isset($carritoExistente) && count($carritoExistente) > 0)
+                carrito = @json($carritoExistente);
+            actualizarCarrito();
+            @endif
 
             // ============================================
             // CARGAR PRODUCTOS POR TIPO
@@ -239,7 +263,6 @@
 
                 if (!tipo) return;
 
-                // Cargar productos según tipo
                 $.ajax({
                     url: tipo === 'libro' ? '/api/libros-venta' : '/api/peliculas-venta',
                     method: 'GET',
@@ -252,7 +275,6 @@
                             $productoSelect.append('<option value="' + item.id + '" data-precio="' + item.precio + '" data-stock="' + item.stock + '">' + label + '</option>');
                         });
 
-                        // Generar campos dinámicos según tipo
                         generarCamposDinamicos(tipo);
                     },
                     error: function() {
@@ -342,7 +364,6 @@
                 $('#precio_unitario').val(precio ? parseFloat(precio).toFixed(2) : '');
                 $('#stock_disponible').val(stock ? stock : '0');
 
-                // Cargar datos adicionales según tipo
                 if (id && tipo) {
                     const producto = productosData.find(p => p.id == id);
                     if (producto) {
@@ -385,7 +406,8 @@
                     return;
                 }
 
-                if (cantidad > stock) {
+                // En edición, permitir stock mayor
+                if (!esEdicion && cantidad > stock) {
                     Swal.fire('Error', 'No hay suficiente stock disponible. Stock: ' + stock, 'warning');
                     return;
                 }
@@ -396,10 +418,12 @@
                     return;
                 }
 
-                // Verificar si ya existe en el carrito
+                const nombre = tipo === 'libro' ? producto.titulo : producto.titulo;
+                const autor = tipo === 'libro' ? producto.autor : producto.director;
+
                 const existente = carrito.find(item => item.id === productoId && item.tipo === tipo);
                 if (existente) {
-                    if (existente.cantidad + cantidad > stock) {
+                    if (!esEdicion && existente.cantidad + cantidad > stock) {
                         Swal.fire('Error', 'No hay suficiente stock disponible. Stock: ' + stock, 'warning');
                         return;
                     }
@@ -409,8 +433,8 @@
                     carrito.push({
                         id: productoId,
                         tipo: tipo,
-                        nombre: tipo === 'libro' ? producto.titulo : producto.titulo,
-                        autor: tipo === 'libro' ? producto.autor : producto.director,
+                        nombre: nombre,
+                        autor: autor,
                         cantidad: cantidad,
                         precio: precio,
                         subtotal: cantidad * precio,
@@ -473,7 +497,6 @@
 
                 $body.html(html);
 
-                // Calcular totales
                 const iva = subtotal * 0.16;
                 const total = subtotal + iva;
 
@@ -491,7 +514,7 @@
                     const nuevaCantidad = item.cantidad + cambio;
 
                     if (nuevaCantidad < 1) return;
-                    if (nuevaCantidad > item.stock) {
+                    if (!esEdicion && nuevaCantidad > item.stock) {
                         Swal.fire('Error', 'No hay suficiente stock disponible. Stock: ' + item.stock, 'warning');
                         return;
                     }
@@ -523,7 +546,7 @@
             }
 
             // ============================================
-            // FINALIZAR VENTA
+            // FINALIZAR VENTA (MODAL)
             // ============================================
             $('#btnFinalizarVenta').on('click', function() {
                 if (carrito.length === 0) {
@@ -531,13 +554,11 @@
                     return;
                 }
 
-                // Calcular totales
                 let subtotal = 0;
                 carrito.forEach(item => subtotal += item.subtotal);
                 const iva = subtotal * 0.16;
                 const total = subtotal + iva;
 
-                // Mostrar modal de confirmación
                 $('#modalTotal').text('$' + total.toFixed(2));
                 $('#modalItems').text(carrito.reduce((sum, item) => sum + item.cantidad, 0));
                 $('#confirmarVentaModal').modal('show');
@@ -550,58 +571,62 @@
                 const $btn = $(this);
                 $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Procesando...');
 
-                // Preparar datos
-                const clienteNombre = $('#cliente_nombre').val() || 'Público en general';
-                const clienteRfc = $('#cliente_rfc').val() || '';
-                const clienteTelefono = $('#cliente_telefono').val() || '';
-
-                // Calcular totales
-                let subtotal = 0;
-                carrito.forEach(item => subtotal += item.subtotal);
-                const total = subtotal + (subtotal * 0.16);
-
-                const items = carrito.map(item => ({
-                    tipo: item.tipo,
-                    id: item.id,
-                    cantidad: item.cantidad,
-                    precio: item.precio
-                }));
-
                 const data = {
                     folio: $('input[name="folio"]').val(),
-                    cliente_nombre: clienteNombre,
-                    cliente_rfc: clienteRfc,
-                    cliente_telefono: clienteTelefono,
+                    cliente_nombre: $('#cliente_nombre').val() || 'Público en general',
+                    cliente_apellido: $('#cliente_apellido').val() || '',
+                    cliente_rfc: $('#cliente_rfc').val() || '',
+                    cliente_telefono: $('#cliente_telefono').val() || '',
+                    cliente_email: $('#cliente_email').val() || '',
                     metodo_pago: $('#metodo_pago').val(),
                     observaciones: $('#observaciones').val(),
-                    items: items,
-                    total: total
+                    items: carrito.map(item => ({
+                        tipo: item.tipo,
+                        id: item.id,
+                        cantidad: item.cantidad,
+                        precio: item.precio
+                    })),
+                    total: parseFloat($('#totalDisplay').text().replace('$', '').replace(',', '')) || 0
                 };
 
-                // Enviar al servidor
+                let url = $('#ventaForm').attr('action');
+                let method = 'POST';
+
+                if (esEdicion) {
+                    method = 'PUT';
+                    // Para PUT, Laravel espera _method en el POST
+                    data._method = 'PUT';
+                    url = url || '/ventas/' + $('input[name="venta_id"]').val();
+                }
+
                 $.ajax({
-                    url: $('#ventaForm').attr('action'),
+                    url: url,
                     method: 'POST',
                     data: JSON.stringify(data),
                     contentType: 'application/json',
                     headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                        'X-HTTP-Method-Override': method
                     },
                     success: function(response) {
                         if (response.success) {
                             $('#confirmarVentaModal').modal('hide');
                             Swal.fire({
                                 icon: 'success',
-                                title: '¡Venta registrada!',
+                                title: esEdicion ? '¡Venta actualizada!' : '¡Venta registrada!',
                                 text: 'Folio: ' + response.folio,
                                 showCancelButton: true,
                                 confirmButtonText: 'Ver Ticket',
-                                cancelButtonText: 'Nueva Venta'
+                                cancelButtonText: 'Volver al historial'
                             }).then((result) => {
                                 if (result.isConfirmed) {
                                     window.open('/ventas/ticket/' + response.venta_id, '_blank');
                                 }
-                                location.reload();
+                                if (esEdicion) {
+                                    window.location.href = '/ventas/historial';
+                                } else {
+                                    location.reload();
+                                }
                             });
                         } else {
                             Swal.fire('Error', response.message || 'Error al procesar la venta', 'error');
@@ -615,7 +640,7 @@
                         Swal.fire('Error', mensaje, 'error');
                     },
                     complete: function() {
-                        $btn.prop('disabled', false).html('<i class="fas fa-check me-2"></i>Confirmar Venta');
+                        $btn.prop('disabled', false).html('<i class="fas fa-check me-2"></i>' + (esEdicion ? 'Actualizar' : 'Confirmar'));
                     }
                 });
             });
@@ -634,7 +659,6 @@
             // KEYBOARD SHORTCUTS
             // ============================================
             $(document).on('keydown', function(e) {
-                // Ctrl + Enter para finalizar venta
                 if (e.ctrlKey && e.which === 13) {
                     e.preventDefault();
                     $('#btnFinalizarVenta').click();

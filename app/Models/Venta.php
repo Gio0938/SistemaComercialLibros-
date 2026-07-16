@@ -46,6 +46,30 @@ class Venta extends Model
         return $this->hasMany(DetalleVenta::class, 'venta_id', 'idventa');
     }
 
+    /**
+     * Generate a unique folio for the venta.
+     */
+    public static function generarFolio()
+    {
+        $anio = date('Y');
+
+        // Obtener el último folio del año actual
+        $ultimoFolio = self::where('folio', 'LIKE', 'VEN-' . $anio . '-%')
+            ->orderBy('idventa', 'desc')
+            ->value('folio');
+
+        if (!$ultimoFolio) {
+            return 'VEN-' . $anio . '-0001';
+        }
+
+        // Extraer el número del folio
+        $partes = explode('-', $ultimoFolio);
+        $numero = (int) end($partes);
+        $nuevoNumero = str_pad($numero + 1, 4, '0', STR_PAD_LEFT);
+
+        return 'VEN-' . $anio . '-' . $nuevoNumero;
+    }
+
     public function getTotalFormateadoAttribute()
     {
         return '$' . number_format($this->total, 2);
@@ -69,18 +93,19 @@ class Venta extends Model
     public function getClienteNombreAttribute()
     {
         if ($this->cliente) {
-            return $this->cliente->nombre_completo;
+            return $this->cliente->nombre . ' ' . $this->cliente->apellido;
         }
         return 'Público en general';
     }
 
-    /**
-     * Generate a unique folio for the venta.
-     */
-    public static function generarFolio()
+    public function getMetodoPagoTextoAttribute()
     {
-        $year = date('Y');
-        $count = self::whereYear('fecha_venta', $year)->count() + 1;
-        return 'VEN-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+        $metodos = [
+            'efectivo' => 'Efectivo',
+            'tarjeta' => 'Tarjeta',
+            'transferencia' => 'Transferencia',
+            'credito' => 'Crédito'
+        ];
+        return $metodos[$this->metodo_pago] ?? $this->metodo_pago;
     }
 }

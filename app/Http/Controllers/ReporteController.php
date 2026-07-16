@@ -213,8 +213,8 @@ class ReporteController extends Controller
 
     public function inventario()
     {
-        $libros = Libro::orderBy('genero')->get();
-        $peliculas = Pelicula::orderBy('genero')->get();
+        $libros = Libro::orderBy('titulo')->get();
+        $peliculas = Pelicula::orderBy('titulo')->get();
 
         $totalLibros = $libros->count();
         $totalPeliculas = $peliculas->count();
@@ -222,6 +222,11 @@ class ReporteController extends Controller
         $totalStockPeliculas = $peliculas->sum('stock');
         $totalValorLibros = $libros->sum(function($l) { return $l->precio * $l->stock; });
         $totalValorPeliculas = $peliculas->sum(function($p) { return $p->precio * $p->stock; });
+
+        $librosStockBajo = Libro::whereRaw('stock <= stock_minimo')->where('stock', '>', 0)->count();
+        $peliculasStockBajo = Pelicula::whereRaw('stock <= stock_minimo')->where('stock', '>', 0)->count();
+        $librosAgotados = Libro::where('stock', 0)->count();
+        $peliculasAgotadas = Pelicula::where('stock', 0)->count();
 
         return view('reportes.inventario', compact(
             'libros',
@@ -231,7 +236,11 @@ class ReporteController extends Controller
             'totalStockLibros',
             'totalStockPeliculas',
             'totalValorLibros',
-            'totalValorPeliculas'
+            'totalValorPeliculas',
+            'librosStockBajo',
+            'peliculasStockBajo',
+            'librosAgotados',
+            'peliculasAgotadas'
         ));
     }
 
